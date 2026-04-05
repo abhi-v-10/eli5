@@ -1,0 +1,40 @@
+{
+    "name": "ELI5: Explain Like I'm 5",
+    "version": "0.1.0",
+    "description": "Understand complex text instantly with simple explanations",
+  
+    "manifest_version": 3,
+  
+    "permissions": [
+      "storage",
+      "activeTab",
+      "scripting"
+    ],
+  
+    "host_permissions": [
+      "<all_urls>"
+    ],
+  
+    "background": {
+      "service_worker": "background.js"
+    },
+  
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["contentScript.js"]
+      }
+    ],
+  
+    "action": {
+      "default_title": "ELI5: Explain Like I'm 5",
+      "default_popup": "popup/popup.html",
+      "default_icon": {
+        "16": "assets/eli5.png",
+        "24": "assets/eli5.png",
+        "32": "assets/eli5.png"
+      }
+    },
+  
+    "options_page": "options/options.html"
+  }
