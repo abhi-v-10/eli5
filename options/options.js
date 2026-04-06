@@ -1,1 +1,1 @@
-console.log("Options loaded");
+// Options page – placeholder for future settings UI

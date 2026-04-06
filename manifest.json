@@ -8,7 +8,9 @@
     "permissions": [
       "storage",
       "activeTab",
-      "scripting"
+      "tabs",
+      "scripting",
+      "clipboardWrite"
     ],
   
     "host_permissions": [
@@ -30,11 +32,30 @@
       "default_title": "ELI5: Explain Like I'm 5",
       "default_popup": "popup/popup.html",
       "default_icon": {
-        "16": "assets/eli5.png",
-        "24": "assets/eli5.png",
-        "32": "assets/eli5.png"
+        "16": "assets/eli5-nobg.png",
+        "24": "assets/eli5-nobg.png",
+        "32": "assets/eli5-nobg.png",
+        "48": "assets/eli5-nobg.png",
+        "128": "assets/eli5-nobg.png"
       }
     },
+
+    "icons": {
+    "16": "assets/eli5-nobg.png",
+    "32": "assets/eli5-nobg.png",
+    "48": "assets/eli5-nobg.png",
+    "128": "assets/eli5-nobg.png"
+  },
   
-    "options_page": "options/options.html"
+  "options_page": "options/options.html",
+
+  "commands": {
+    "start-snip": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Start Snip Mode"
+    }
   }
+}
