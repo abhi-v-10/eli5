@@ -657,20 +657,12 @@ function showPopup(text, overrideAnchor = null, loadingText = "Explaining…") {
   }
   document.addEventListener("keydown", onPopupKeyDown);
 
-  // ── Click outside to close ──────────────────────────────────────────────
-  function onClickOutside(e) {
-    const p = document.getElementById("eli5-popup");
-    if (p && !p.contains(e.target)) closePopup();
-  }
-  setTimeout(() => document.addEventListener("mousedown", onClickOutside), 150);
-
   // Clean up all document listeners when popup is removed
   const observer = new MutationObserver(() => {
     if (!document.getElementById("eli5-popup")) {
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup",   onUp);
       document.removeEventListener("keydown", onPopupKeyDown);
-      document.removeEventListener("mousedown", onClickOutside);
       observer.disconnect();
     }
   });

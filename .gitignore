@@ -4,3 +4,4 @@ secrets.js
 .env.*
 *.pem
 *.key
+local.ai.config.js

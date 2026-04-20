@@ -1,10 +1,27 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // ELI5 — Background Service Worker
-// API keys are NEVER stored in extension code.
-// All AI requests are routed through a secure backend.
+// Recommended: route all AI requests through a secure backend.
+// Local-only option is supported via local.ai.config.js for personal use.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MIN_TEXT_LENGTH = 5;
+const AI_MODE = "backend"; // "backend" | "local"
+const API_ENDPOINT = "https://eli5-backend-production.up.railway.app";
+
+let LOCAL_CONFIG = {
+  provider: "openai",
+  openaiApiKey: "",
+  model: "gpt-4o-mini",
+};
+
+try {
+  importScripts("local.ai.config.js");
+  if (self.ELI5_LOCAL_CONFIG && typeof self.ELI5_LOCAL_CONFIG === "object") {
+    LOCAL_CONFIG = { ...LOCAL_CONFIG, ...self.ELI5_LOCAL_CONFIG };
+  }
+} catch (_err) {
+  // Local config file is optional.
+}
 
 // ── Keyboard shortcut → Snip Mode ────────────────────────────────────────────
 chrome.commands.onCommand.addListener((command) => {
@@ -16,8 +33,6 @@ chrome.commands.onCommand.addListener((command) => {
     });
   }
 });
-
-const BACKEND = "https://eli5-backend-production.up.railway.app";
 
 const FORMAT_RULES = {
   bullets:
@@ -181,9 +196,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   return false;
 });
 
-// ── Shared backend caller ─────────────────────────────────────────────────────
+// ── AI caller (backend or local direct mode) ──────────────────────────────────
 async function callBackend(messages, temperature, maxTokens = 250) {
-  const response = await fetch(`${BACKEND}/api/explain`, {
+  const response = await fetch(`${API_ENDPOINT}/api/explain`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -201,6 +216,56 @@ async function callBackend(messages, temperature, maxTokens = 250) {
   }
 
   return data.explanation;
+}
+
+async function callLocalOpenAI(messages, temperature, maxTokens = 250) {
+  if (!LOCAL_CONFIG.openaiApiKey) {
+    throw new Error("Local API key not found. Configure local.ai.config.js.");
+  }
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${LOCAL_CONFIG.openaiApiKey}`,
+    },
+    body: JSON.stringify({
+      model: LOCAL_CONFIG.model || "gpt-4o-mini",
+      messages,
+      temperature,
+      max_tokens: maxTokens,
+    }),
+  });
+
+  let data = null;
+  try {
+    data = await response.json();
+  } catch (_err) {
+    throw new Error("AI request failed.");
+  }
+
+  if (!response.ok) {
+    const apiError = data?.error?.message || `AI request failed (${response.status}).`;
+    throw new Error(apiError);
+  }
+
+  const explanation = data?.choices?.[0]?.message?.content?.trim();
+  if (!explanation) {
+    throw new Error("Empty response from AI.");
+  }
+
+  return explanation;
+}
+
+async function callAI(messages, temperature, maxTokens = 250) {
+  if (AI_MODE === "local") {
+    if (LOCAL_CONFIG.provider !== "openai") {
+      throw new Error("Unsupported local provider.");
+    }
+    return callLocalOpenAI(messages, temperature, maxTokens);
+  }
+
+  return callBackend(messages, temperature, maxTokens);
 }
 
 // ── Core function ─────────────────────────────────────────────────────────────
@@ -236,7 +301,7 @@ ${formatInstruction}
 - Do NOT fall back to generic, academic, or robotic tone
 - The reader should immediately feel the persona from the first line`;
 
-  return callBackend(
+  return callAI(
     [
       { role: "system", content: systemPrompt },
       { role: "user",   content: `Explain this:\n\n"${text}"` },
@@ -286,7 +351,7 @@ ${formatInstruction}
 - Keep the same persona tone throughout the refinement
 - Do NOT fall back to neutral or academic tone`;
 
-  return callBackend(
+  return callAI(
     [
       { role: "system", content: systemPrompt },
       { role: "user",   content: `Refine this explanation:\n\n"${currentExplanation}"` },
@@ -331,7 +396,7 @@ ${formatInstruction}
 - Do NOT fall back to generic, academic, or robotic tone
 - The reader should immediately feel the persona from the first line`;
 
-  const explanation = await callBackend(
+  const explanation = await callAI(
     [
       { role: "system", content: systemPrompt },
       {
